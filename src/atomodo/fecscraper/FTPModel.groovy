@@ -1,9 +1,12 @@
 package atomodo.fecscraper
 
 import org.apache.commons.net.ftp.FTPClient
+import org.apache.commons.net.ftp.FTP
 
 class FTPModel {
+	static final int YEAR_FROM = 2004
 	String server = "ftp.fec.gov"
+	String logMessage = ""
 	File localFolder 
 	def filesToSkip = ["pas286.zip",]
 	
@@ -14,47 +17,68 @@ class FTPModel {
 		}
 	}
 	
-	def update(){
+	public String update(){
 		def ftp = new FTPClient()
 		ftp.connect(server)
 		ftp.login('anonymous', 'a@atomodo.com')
 		println "Connected to $server. $ftp.replyString"
+		logMessage = "Connected to $server. $ftp.replyString\n"
+		int fileCount = 0
 		ftp.changeWorkingDirectory('FEC')
+		ftp.setFileType(FTP.BINARY_FILE_TYPE)
 		
-		def ftpFiles = []
-
-		['/FEC', '/FEC/2000', '/FEC/2002', '/FEC/2004', '/FEC/2006', '/FEC/2008'
-			, '/FEC/2010', '/FEC/2012']. each {
-			ftp.changeWorkingDirectory("${it}")
-			ftpFiles.addAll(ftp.listFiles())
-			ftpFiles = ftpFiles.findAll { it.name =~ FECDataFile.namePattern }
-			ftpFiles.each { ftpFile ->
-				String fileName = ftpFile.name
-				File localFile = new File(localFolder, fileName)
-				if (filesToSkip.contains(fileName)) {
-					println "${fileName} is in list of files to skip."
-				} else if (!localFile.exists()){
-					localFile.withOutputStream{ os ->
-						println "getting $fileName.."
-						ftp.retrieveFile( fileName, os)
-					}
-				} else {
-					if (localFile.length() != ftpFile.size) {
-						println "${fileName} local file is ${localFile.length()} while remote file is ${ftpFile.size}"
+		int yearNow = Integer.parseInt(new Date().format("yyyy"))
+		for (int yyyy = YEAR_FROM; yyyy <= yearNow; yyyy += 2) {
+			File yf = new File("${localFolder.getPath()}/FEC/${yyyy}")
+			if (!yf.isDirectory()) {
+				yf.mkdirs()
+			}
+			getFileNames(yyyy.toString()).each { fileName ->
+				print fileName
+				File localFile = 
+					new File("${localFolder.getPath()}/FEC/${fileName}")
+				def ftpFiles = ftp.listFiles("/FEC/${fileName}")
+				if (ftpFiles) {
+					def ftpFile = ftpFiles[0]
+  					if (!localFile.isFile()) {
+						print "..new file..getting.."
 						localFile.withOutputStream{ os ->
-							println "getting $fileName.."
 							ftp.retrieveFile( fileName, os)
 						}
+						fileCount += 1
+						print "done"
+					} else if (localFile.length() != ftpFile.size) {
+						print "..local=${localFile.length()} " +
+							"remote=${ftpFile.size}..getting.."
+							localFile.withOutputStream{ os ->
+								ftp.retrieveFile( fileName, os)
+							}
+							fileCount += 1
+							print "done"
 					} else {
-						println "${fileName} is unchanged."
+						print " ..unchanged"
 					}
+				} else {
+					print "\t NOT FOUND!"
 				}
+				println "."
 			}
-		}		
-		
+			
+		}
 		ftp.logout()
 		ftp.disconnect()
-		println "loged out.."
+		println "loged out.."	
+		logMessage += "GOT ${fileCount} new or updated files.\n"	
+		return logMessage
 	}
-
+	
+	static def getFileNames(String yyyy) {
+		String yy = yyyy.toString().substring(2, 4)
+		def fileNames = ["${yyyy}/cm${yy}.zip", "${yyyy}/cn${yy}.zip"
+			, "${yyyy}/add${yy}.zip"
+			, "${yyyy}/chg${yy}.zip", "${yyyy}/delete${yy}.zip"
+			, "${yyyy}/indiv${yy}.zip", "${yyyy}/oth${yy}.zip"
+			, "${yyyy}/pas2${yy}.zip"]
+		return fileNames
+	}
 }
