@@ -103,21 +103,24 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'numeric id assigned by this db',
   `y2` char(2) NOT NULL DEFAULT 'xx' COMMENT 'year of the data which might not be the same as the year of ellection',
   `cn_id` char(9) NOT NULL DEFAULT '' COMMENT 'id assigned by FEC',
-  `name` varchar(38) DEFAULT NULL,
+  `name` varchar(200) DEFAULT NULL,
   `party` varchar(3) DEFAULT NULL,
-  `party2` varchar(3) DEFAULT NULL,
+  `election_year` decimal(4,0) DEFAULT NULL,
+  `office_state` char(2) DEFAULT NULL,
+  `office` char(1) DEFAULT NULL,
+  `district` char(2) DEFAULT NULL,
   `i_c_status` char(1) DEFAULT NULL,
   `cn_status` char(1) DEFAULT NULL,
+  `cm_id` char(9) DEFAULT NULL,
   `street1` varchar(38) DEFAULT NULL,
   `street2` varchar(38) DEFAULT NULL,
   `city` varchar(18) DEFAULT NULL,
   `state` char(2) DEFAULT NULL,
   `zip` char(5) DEFAULT NULL,
-  `cm_id` char(9) DEFAULT NULL,
-  `year` char(2) NOT NULL DEFAULT '',
-  `district` char(2) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Candidates';
+  PRIMARY KEY (`cn_id`,`y2`),
+  UNIQUE KEY `IX_id` (`id`),
+  KEY `IX_cm_id` (`cm_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=22037 DEFAULT CHARSET=utf8 COMMENT='Candidates';
 """)
 		
 		db.execute("""CREATE TABLE `scm` (
@@ -293,21 +296,12 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
 				//def zipFile = new java.util.zip.ZipFile(file)
 				def zipFile = new ZipFile(file)
 				int recCount = 0
-				zipFile.entries.findAll { 
-					it.name.endsWith(".dta") 
-					}.each { zipFileEntry ->
+				zipFile.entries.each { zipFileEntry ->
 					println "\tzip entry: ${zipFileEntry.name}"
 					InputStream ins = zipFile.getInputStream(zipFileEntry)
-					BufferedReader br = ins.newReader("ISO8859_1")
+					BufferedReader br = ins.newReader()
 					br.eachLine { line ->
-						def v = [y2, line[0..8], line[9..46].trim(), line[47..49].trim()
-							, line[53..55].trim(), line[56].trim(), line[58].trim()
-							, line[59..92].trim(), line[93..126].trim(), line[127..144].trim()
-							, line[145..146].trim(), line[147..151].trim(), line[152..160].trim()
-							, line[161..162].trim(), line[163..164].trim()]
-						v = v.collect { it.replaceAll("\t", "    ")
-							.replaceAll("\\\\", "\\\\\\\\") } .join("\t")
-						out << "${v}\n"
+						out << "${y2}|${line}\n"
 						recCount += 1
 					}
 					br.close()
@@ -320,36 +314,42 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
 		db.execute("TRUNCATE TABLE scn")
 		int recCount = db.executeUpdate("""LOAD DATA LOCAL INFILE '""" + outFile.absolutePath 
 			+ """' INTO TABLE scn
-					CHARACTER SET utf8
-				(y2, cn_id, name, party, party2, i_c_status, cn_status, street1
-,street2, city, state, zip, cm_id, year, district)""")
+CHARACTER SET utf8
+FIELDS TERMINATED BY '|'
+(y2,cn_id,`name` ,party ,election_year, office_state, office
+, district, i_c_status, cn_status, cm_id, street1, street2, city
+, `state`, zip)""")
 		println "${recCount} rows loaded. UPDATING any changed records.."
 		recCount = db.executeUpdate("""UPDATE cn  
 INNER JOIN scn ON scn.y2 = cn.y2 AND scn.cn_id = cn.cn_id
-SET cn.`name` = scn.`name`, cn.party = scn.party, cn.party2 = scn.party2
-, cn.i_c_status = scn.i_c_status, cn.cn_status = scn.cn_status, cn.street1 = scn.street1
-, cn.street2 = scn.street2, cn.city = scn.city, cn.state = scn.state, cn.zip = scn.zip
-, cn.cm_id = scn.cm_id, cn.`year` = scn.`year`, cn.district = scn.district
-WHERE (cn.`name` != scn.`name` OR cn.party != scn.party OR cn.party2 != scn.party2
-OR cn.i_c_status != scn.i_c_status OR cn.cn_status != scn.cn_status OR cn.street1 != scn.street1
-OR cn.street2 != scn.street2 OR cn.city != scn.city OR cn.state != scn.state OR cn.zip != scn.zip
-OR cn.cm_id != scn.cm_id OR cn.`year` != scn.`year` OR cn.district != scn.district)
+SET cn.`name` = scn.`name` , cn.party = scn.party
+, cn.election_year = scn.election_year, cn.office_state = scn.office_state
+, cn.office = scn.office, cn.district = scn.district
+, cn.i_c_status = scn.i_c_status, cn.cn_status = scn.cn_status
+, cn.cm_id = scn.cm_id, cn.street1 = scn.street1, cn.street2 = scn.street2
+, cn.city = scn.city, cn.`state` = scn.`state`, cn.zip = scn.zip
+WHERE (cn.`name` != scn.`name` OR cn.party != scn.party
+OR cn.election_year != scn.election_year OR cn.office_state != scn.office_state
+OR cn.office != scn.office OR cn.district != scn.district
+OR cn.i_c_status != scn.i_c_status OR cn.cn_status != scn.cn_status
+OR cn.cm_id != scn.cm_id OR cn.street1 != scn.street1 OR cn.street2 != scn.street2
+OR cn.city != scn.city OR cn.`state` != scn.`state` OR cn.zip != scn.zip)
 """)
 		println "${recCount} updates. INSERTing new cn records into cn table.."
 		longMessage += "${recCount} updated and "
-		recCount = db.executeUpdate("""INSERT INTO cn (y2, cn_id, `name`, party, party2
-, i_c_status, cn_status, street1
-,street2, city, state, zip
-, cm_id, `year`, district)
-SELECT scn.y2, scn.cn_id, scn.`name`, scn.party, scn.party2
-, scn.i_c_status, scn.cn_status, scn.street1
-, scn.street2, scn.city, scn.state, scn.zip
-, scn.cm_id, scn.`year`, scn.district
+		recCount = db.executeUpdate("""INSERT INTO cn (y2,cn_id,`name` ,party 
+,election_year, office_state, office
+, district, i_c_status, cn_status, cm_id, street1, street2, city
+, `state`, zip)
+SELECT scn.y2, scn.cn_id, scn.`name`, scn.party, scn.election_year
+, scn.office_state, scn.office, scn.district, scn.i_c_status, scn.cn_status
+, scn.cm_id, scn.street1, scn.street2, scn.city, scn.`state`, scn.zip
 FROM scn
 LEFT OUTER JOIN cn AS ocn ON scn.y2 = ocn.y2 AND scn.cn_id = ocn.cn_id
 WHERE ocn.id IS NULL""")
 		println ("${recCount} new cn records.")
 		longMessage += "${recCount} new candidate records.\n"
+		outFile.delete()
 	}
 	
 	def updateCm() {
@@ -364,21 +364,12 @@ WHERE ocn.id IS NULL""")
 				//def zipFile = new java.util.zip.ZipFile(file)
 				def zipFile = new ZipFile(file)
 				int recCount = 0
-				zipFile.entries.findAll {
-					it.name.endsWith(".dta")
-					}.each { zipFileEntry ->
+				zipFile.entries.each { zipFileEntry ->
 					println "\tzip entry: ${zipFileEntry.name}"
 					InputStream ins = zipFile.getInputStream(zipFileEntry)
-					BufferedReader br = ins.newReader("ISO8859_1")
+					BufferedReader br = ins.newReader()  // old file format needed newReader("ISO8859_1")
 					br.eachLine { line ->
-						def v = [y2, line[0..8], line[9..98].trim(), line[99..136].trim()
-							, line[137..170].trim(), line[171..204].trim(), line[205..222].trim()
-							, line[223..224].trim(), line[225..229].trim(), line[230].trim()
-							, line[231].trim(), line[232..234].trim(), line[235].trim()
-							, line[236].trim(), line[237..274].trim(), line[275..283].trim()]
-						v = v.collect { it.replaceAll("\t", "    ")
-							.replaceAll("\\\\", "\\\\\\\\") } .join("\t")
-						out << "${v}\n"
+						out << "${y2}|${line}\n"
 						recCount += 1
 					}
 				}
@@ -395,7 +386,8 @@ y2, cm_id, `name`, treasurer, street_1, street_2, city, state, zip
 		db.execute("TRUNCATE TABLE scm")
 		int recCount = db.executeUpdate("""LOAD DATA LOCAL INFILE '""" + outFile.absolutePath
 			+ """' INTO TABLE scm
-					CHARACTER SET utf8
+CHARACTER SET utf8
+FIELDS TERMINATED BY '|'
 				(y2, cm_id, `name`, treasurer, street_1, street_2, city, state, zip
 , cm_designation, cm_type, party, filing_freq, interest_group_cat
 , org_name, cn_id)""")
@@ -433,7 +425,8 @@ LEFT OUTER JOIN cm AS ocm ON ocm.y2 = scm.y2 AND ocm.cm_id = scm.cm_id
 WHERE ocm.id IS NULL
 """)
 		println ("${recCount} new cm records.")
-		longMessage += "${recCount} new committee records."
+		longMessage += "${recCount} new committee records./n"
+		outFile.delete()
 	}
 	
 	def updateContributions() {
@@ -448,12 +441,10 @@ WHERE ocm.id IS NULL
 				println "${file.name} - ${y2}"
 				def zipFile = new ZipFile(file)
 				int recCount = 0
-				zipFile.entries.findAll {
-					it.name.endsWith(".dta")
-				}.each { zipFileEntry ->
+				zipFile.entries.each { zipFileEntry ->
 					println "\tzip entry: ${zipFileEntry.name}"
 					InputStream ins = zipFile.getInputStream(zipFileEntry)
-					BufferedReader br = ins.newReader("ISO8859_1")
+					BufferedReader br = ins.newReader() 
 					def out = new BufferedWriter(new OutputStreamWriter(
 						new FileOutputStream(outFile), "UTF8"))
 					br.eachLine { line ->
@@ -536,6 +527,7 @@ WHERE ocm.id IS NULL
 				}
 			}
 		}
+		outFile.delete()
 	}
 	
 	def moveStagingToProd() {

@@ -22,7 +22,7 @@ class FTPModel {
 		ftp.connect(server)
 		ftp.login('anonymous', 'a@atomodo.com')
 		println "Connected to $server. $ftp.replyString"
-		logMessage = "Connected to $server. $ftp.replyString\n"
+		logMessage = "Connected to $server. $ftp.replyString"
 		int fileCount = 0
 		ftp.changeWorkingDirectory('FEC')
 		ftp.setFileType(FTP.BINARY_FILE_TYPE)
