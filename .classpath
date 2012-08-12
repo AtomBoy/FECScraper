@@ -5,7 +5,6 @@
 	<classpathentry exported="true" kind="con" path="GROOVY_SUPPORT"/>
 	<classpathentry exported="true" kind="con" path="GROOVY_DSL_SUPPORT"/>
 	<classpathentry kind="lib" path="/Users/acoil/Documents/Java/commons-net-3.0.1/commons-net-3.0.1.jar"/>
-	<classpathentry kind="lib" path="/Users/acoil/Documents/Java/joda-time-2.1/joda-time-2.1.jar"/>
 	<classpathentry kind="lib" path="/Users/acoil/Documents/Java/mysql-connector-java-5.1.21/mysql-connector-java-5.1.21-bin.jar"/>
 	<classpathentry kind="lib" path="/Users/acoil/Documents/Java/commons-compress-1.4.1/commons-compress-1.4.1.jar"/>
 	<classpathentry kind="output" path="bin"/>

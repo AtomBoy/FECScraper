@@ -4,8 +4,6 @@ import java.io.File
 import java.util.Calendar
 import java.util.regex.Matcher
 
-import org.joda.time.format.DateTimeFormatter;
-
 import groovy.sql.Sql
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.zip.ZipFile

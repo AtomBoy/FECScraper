@@ -1,4 +1,5 @@
-This code is part of http://www.atomodo.com which is still in progress.
+This code is part of a web application to analyze campaign finance data on
+http://www.atomodo.com which is still being written.
 
 There is a great set of data about who gives money to US political committees. 
 It is maintained by the Federal Elections Commission and is free to
@@ -8,6 +9,16 @@ Anyone wanting to do serious analysis on this data will face a couple of
 challenges- it's pretty big data and the ids that you might expect to be able
 to use are not always unique across years.
 
-This script fetches files from the ftp server and efficently loads the data
+This script fetches files from the ftp server and efficiently loads the data
 into a MySQL database. It uses unique, database generated, integer keys for
 efficient joins.
+
+Before running the script, you should create a database using the
+CREATE_FEC_DATABASE.sql script. Once the database is created, you'll need to
+add a user with SELECT, INSERT, CREATE, and DROP permissions, then edit
+src/atomodo/fecscraper/DBModel.groovy to update the username and password on
+line 26. You should also update the email address on line 28 of
+src/atomodo/fecscraper/FTPModel.groovy to your own.
+
+To compile, you'll need Groovy 1.6 or greater, commons.net 3.0.1,
+mysql connector 5.1, and commons.compress 1.4.1+.
