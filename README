@@ -13,12 +13,57 @@ This script fetches files from the ftp server and efficiently loads the data
 into a MySQL database. It uses unique, database generated, integer keys for
 efficient joins.
 
+There is an explanation of the tables and fields here:
+http://www.fec.gov/finance/disclosure/ftpdet.shtml
+
+The database this script creates modifies the data slightly to create unique
+integer ids for candidates (the ca table) and committees (the cm table).
+
+These ids are used instead of the ones supplied by the FEC for the
+contribution tables (indiv, oth, and pas2). This is done so that multiple
+years worth of data can be analyzed and a side effect is a slight savings
+in the storage needed.
+
 Before running the script, you should create a database using the
 CREATE_FEC_DATABASE.sql script. Once the database is created, you'll need to
 add a user with SELECT, INSERT, CREATE, and DROP permissions, then edit
-src/atomodo/fecscraper/DBModel.groovy to update the username and password on
-line 26. You should also update the email address on line 28 of
+src/atomodo/fecscraper/DBModel.groovy to update the connection string,
+username and password on line 26. 
+ 
+You should also update the email address on line 28 of
 src/atomodo/fecscraper/FTPModel.groovy to your own.
 
-To compile, you'll need Groovy 1.6 or greater, commons.net 3.0.1,
-mysql connector 5.1, and commons.compress 1.4.1+.
+To compile, you'll need: 
+
+Groovy 1.6  			http://groovy.codehaus.org/Download
+commons.net 3.0.1 		http://commons.apache.org/net/download_net.cgi
+commons.compress 1.4.1	http://commons.apache.org/compress/download_compress.cgi
+mysql connector 5.1 	http://www.mysql.com/downloads/connector/j/
+
+Once you have everything working, you'll be able to query your fec database
+for things like the top committees by total dollars:
+
+SELECT 
+	cn.`name` AS candidate
+	, cm.`name` AS committe
+	, cm.party
+	, IFNULL(SUM(i.`transaction_amt`), 0) AS amt
+FROM cm
+LEFT OUTER JOIN cn ON cm.cn_id = cn.cn_id AND cn.y2 = cm.y2
+LEFT OUTER JOIN indiv AS i ON i.cm_id = cm.id
+WHERE cm.y2 = '12'
+GROUP BY cn.`name`, cm.`name`, cm.party
+ORDER BY amt DESC
+LIMIT 100;
+
+Or see what employers and occupations individual contributors have:
+
+SELECT
+	i.employer, i.occupation, COUNT(i.sub_id), sum(i.`transaction_amt`)
+FROM indiv AS i
+JOIN cm ON cm.id = i.cm_id
+WHERE cm.y2 = '12'
+GROUP BY i.occupation, i.employer
+HAVING COUNT(i.sub_id) > 25
+ORDER BY COUNT(i.sub_id) DESC;
+
