@@ -293,7 +293,6 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
 			if (matcher) {
 				String y2 = matcher[0][1]
 				println "${file.name} - ${y2}"
-				//def zipFile = new java.util.zip.ZipFile(file)
 				def zipFile = new ZipFile(file)
 				int recCount = 0
 				zipFile.entries.each { zipFileEntry ->
@@ -306,6 +305,7 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
 					}
 					br.close()
 				}
+				zipFile.close()
 				println"\t${recCount} lines processed into cn.txt"
 			}
 		}
@@ -373,6 +373,7 @@ WHERE ocn.id IS NULL""")
 						recCount += 1
 					}
 				}
+				zipFile.close()
 				println"\t${recCount} lines processed into cm.txt"
 			}
 		}
@@ -525,6 +526,7 @@ WHERE ocm.id IS NULL
 					}
 					println "Loaded ${recCount} ${fileType} records"
 				}
+				zipFile.close()
 			}
 		}
 		outFile.delete()

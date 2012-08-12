@@ -1,0 +1,13 @@
+This code is part of http://www.atomodo.com which is still in progress.
+
+There is a great set of data about who gives money to US political committees. 
+It is maintained by the Federal Elections Commission and is free to
+download from an ftp server at ftp://ftp.fec.gov .
+
+Anyone wanting to do serious analysis on this data will face a couple of
+challenges- it's pretty big data and the ids that you might expect to be able
+to use are not always unique across years.
+
+This script fetches files from the ftp server and efficently loads the data
+into a MySQL database. It uses unique, database generated, integer keys for
+efficient joins.
