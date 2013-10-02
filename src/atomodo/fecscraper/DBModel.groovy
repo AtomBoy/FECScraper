@@ -22,7 +22,7 @@ class DBModel {
 	}
 
 	public DBModel() {
-		db = Sql.newInstance("jdbc:mysql://www.atomodo.com:3306/fec?useUnicode=yes&characterEncoding=UTF-8"
+		db = Sql.newInstance("jdbc:mysql://data.atomodo.com:3306/fec?useUnicode=yes&characterEncoding=UTF-8"
 			, "edgarrw", "ELPmBwMa44"
 			, "com.mysql.jdbc.Driver")
 	}
@@ -52,6 +52,7 @@ VALUES (now(), ${eventType}, ${shortMessage}, ${lm})""")
 	
 	def update() {
 		createStagingTables()
+		checkDataFolder()
 		// the cm and cm production tables are updated by updateCn and updateCm
 		updateCn()
 		updateCm()
@@ -276,6 +277,13 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
 """)
 	}
 	
+	def checkDataFolder(){
+		File dataFolder = new File(".//data")
+		if (!dataFolder.exists()) {
+			dataFolder.mkdirs();
+		}
+	}
+	
 	/**
 	 * Candidate and Committee tables are created from all available files in
 	 * staging tables. Then any updates are inserted into the production
@@ -424,7 +432,7 @@ LEFT OUTER JOIN cm AS ocm ON ocm.y2 = scm.y2 AND ocm.cm_id = scm.cm_id
 WHERE ocm.id IS NULL
 """)
 		println ("${recCount} new cm records.")
-		longMessage += "${recCount} new committee records./n"
+		longMessage += "${recCount} new committee records.\n"
 		outFile.delete()
 	}
 	

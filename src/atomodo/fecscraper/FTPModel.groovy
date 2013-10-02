@@ -4,11 +4,11 @@ import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTP
 
 class FTPModel {
-	static final int YEAR_FROM = 2004
+	// Remember - election years are even!
+	static final int YEAR_FROM = 2004  // how far back do you want to go?
 	String server = "ftp.fec.gov"
 	String logMessage = ""
 	File localFolder 
-	def filesToSkip = ["pas286.zip",]
 	
 	public FTPModel(File localFolder){
 		this.localFolder = localFolder
