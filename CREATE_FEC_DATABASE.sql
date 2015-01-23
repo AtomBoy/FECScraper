@@ -170,6 +170,11 @@ CREATE TABLE `pas2` (
   PRIMARY KEY (`sub_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
+ALTER TABLE `fec`.`pas2` 
+	ADD INDEX `IX_pas2_cm_id` (`cm_id` ASC);
+ALTER TABLE `fec`.`pas2` 
+	ADD INDEX `IX_pas2_other_cm_id` (`other_cm_id` ASC);
+
 
 
 # Dump of table UpdateHistory

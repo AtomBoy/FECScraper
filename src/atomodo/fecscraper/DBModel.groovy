@@ -60,6 +60,7 @@ VALUES (now(), ${eventType}, ${shortMessage}, ${lm})""")
 		updateContributions()
 		moveStagingToProd()
 		dropStagingTables()
+		updateCMMeta()
 		if (theresBeenAnError) {
 			historyNote('f', 'There was an error updating data.', longMessage)
 		} else {
@@ -119,7 +120,7 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
   PRIMARY KEY (`cn_id`,`y2`),
   UNIQUE KEY `IX_id` (`id`),
   KEY `IX_cm_id` (`cm_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=22037 DEFAULT CHARSET=utf8 COMMENT='Candidates';
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='Candidates';
 """)
 		
 		db.execute("""CREATE TABLE `scm` (
@@ -142,7 +143,7 @@ AND id = (SELECT MAX(id) FROM UpdateHistory)"""
   `cn_id` char(9) DEFAULT NULL,
   PRIMARY KEY (`cm_id`,`y2`),
   UNIQUE KEY `IX_id` (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=21652 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 """)
 		db.execute("""CREATE TABLE `soth` (
   `y2` char(2) DEFAULT NULL,
@@ -680,6 +681,15 @@ WHERE i.sub_id != 0""")
 			println "${recCount} records changed."
 			longMessage += "${recCount} changes in indiv incremental update.\n"
 		}
+	}
+	
+	def updateCMMeta() {
+		db.executeUpdate("TRUNCATE TABLE cmMeta;")
+		db.executeUpdate("""INSERT INTO cmMeta (cm_id, contribSum, contribCount)
+SELECT i.cm_id, sum(i.transaction_amt), COUNT(i.sub_id)
+FROM indiv AS i
+WHERE i.cm_id IS NOT NULL
+GROUP BY i.cm_id""")
 	}
 	
 }
